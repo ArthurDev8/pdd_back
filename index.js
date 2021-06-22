@@ -1,35 +1,30 @@
+require('dotenv').config();
 const express = require("express");
-const http = require("http");
 const cors = require("cors");
-const bodyParser = require("body-parser");
-const data = require('./data.json')
+const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
+const router = require('./router/index')
+const errorMiddleware = require('./middlewares/error-middleware');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cookieParser());
+app.use('/api', router);
+app.use(errorMiddleware);
+//53  https://www.youtube.com/watch?v=fN25fMQZ2v0
+mongoose.set('useCreateIndex', true);
 
-app.get('/questionnaire', function (req, res) {
-  res.send(data);
-});
-app.post('/questionnaireId', function ({ body }, res) {
-  let findDataById = data[body.id];
-  res.send(findDataById);
-});
-app.get('/exam', function (req, res) {
-  let randomQuestions = []
-  for (let i = 0; i < 20; i++) {
-    const randomSection = data[Math.floor(Math.random() * data.length)];
-    let randomElement = randomSection.tickets[Math.floor(Math.random() * randomSection.tickets.length)];
-    if (!randomQuestions.includes(randomElement)) {
-      randomQuestions.push(randomElement)
-    } else {
-      i = i - 1;
-    }
-
+const start = async () => {
+  try {
+    await mongoose.connect(process.env.DB_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    app.listen(process.env.PORT, () => { console.log(`Server has been started on ${process.env.PORT} port.`); })
+  } catch (error) {
+    console.log(error);
   }
-  res.send(randomQuestions);
-});
-const PORT = process.env.PORT || 3000;
-http.createServer({}, app).listen(PORT);
-console.log(`Server has been started on ${PORT} port.`);
+}
+
+start();
